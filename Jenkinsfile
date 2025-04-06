@@ -26,7 +26,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                dir('src') {
+               
                     script {
                         docker.build("${DOCKER_IMAGE}", "-f ${DOCKERFILE_PATH} .")
                     }
