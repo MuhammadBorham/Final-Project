@@ -1,21 +1,20 @@
 pipeline {
     agent any
-    
+
     environment {
-        // AWS/EKS Config
-        AWS_REGION      = "eu-west-1"
-        EKS_CLUSTER     = "flask-app-cluster"
+        // Docker Configuration
+        DOCKER_IMAGE     = 'mborham6/jenkins-flask'
+        DOCKER_TAG       = 'latest'
+        DOCKERFILE_PATH  = 'src/Dockerfile'  // Path to Dockerfile
         
-        // Docker Config
-        DOCKER_IMAGE = 'mborham6/jenkins-flask:latest' 
-        DOCKER_HUB_CREDENTIALS = credentials('new-docker-credential')
-        
-        // Kubernetes Config
-        K8S_DIR         = "k8s"
+        // AWS/EKS Configuration
+        AWS_REGION      = 'eu-west-1'
+        EKS_CLUSTER     = 'flask-app-cluster'
+        K8S_MANIFEST_DIR = 'k8s'
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main',
                 url: 'https://github.com/MuhammadBorham/Final-Project.git'
@@ -25,8 +24,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build from root directory
-                    docker.build("${DOCKER_IMAGE}", "-f Dockerfile .")
+                    // Build from root directory with Dockerfile in src/
+                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "-f ${DOCKERFILE_PATH} .")
                 }
             }
         }
@@ -34,8 +33,8 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS}") {
-                        docker.image("${DOCKER_IMAGE}").push()
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
+                        docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
                     }
                 }
             }
@@ -51,8 +50,16 @@ pipeline {
                 ]]) {
                     script {
                         sh """
-                        aws eks update-kubeconfig --name ${EKS_CLUSTER} --region ${AWS_REGION}
-                        kubectl apply -f ${K8S_DIR}
+                        # Configure kubectl
+                        aws eks update-kubeconfig \
+                            --name ${EKS_CLUSTER} \
+                            --region ${AWS_REGION}
+
+                        # Deploy Kubernetes manifests
+                        kubectl apply -f ${K8S_MANIFEST_DIR}
+                        
+                        # Verify deployment
+                        kubectl rollout status deployment/flask-app
                         """
                     }
                 }
@@ -60,3 +67,5 @@ pipeline {
         }
     }
 
+   
+}
