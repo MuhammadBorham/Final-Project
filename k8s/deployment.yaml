@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: library-app
-        image: mborham6/library-app:latest
+        image: mborham6/jenkins-flask:latest
         ports:
         - containerPort: 5000
         env:
