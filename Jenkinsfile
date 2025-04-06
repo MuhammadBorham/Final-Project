@@ -11,9 +11,6 @@ pipeline {
         DOCKER_HUB_CREDENTIALS = credentials('new-docker-credential') // Use credentials() helper
         DOCKERFILE_PATH = "src/Dockerfile"
         
-        // Terraform Config
-        TF_STATE_BUCKET = "newtf.state1"
-        TF_DIR          = "infra/terraform"
         
         // Kubernetes Config
         K8S_DIR         = "k8s"
