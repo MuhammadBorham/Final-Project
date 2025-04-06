@@ -9,7 +9,7 @@ pipeline {
         // Docker Config
         DOCKER_IMAGE = 'mborham6/jenkins-flask:latest' 
         DOCKER_HUB_CREDENTIALS = credentials('new-docker-credential')
-        DOCKERFILE_PATH = "Dockerfile" // Updated path if Dockerfile is in root
+        DOCKERFILE_PATH = "/src/Dockerfile" // Updated path if Dockerfile is in root
         
         // Kubernetes Config
         K8S_DIR         = "k8s"
@@ -25,9 +25,10 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    // Build from root directory
-                    docker.build("${DOCKER_IMAGE}", "-f ${DOCKERFILE_PATH} .")
+                dir('src') {
+                    script {
+                        docker.build("${DOCKER_IMAGE}", "-f ${DOCKERFILE_PATH} .")
+                    }
                 }
             }
         }
