@@ -1,55 +1,81 @@
 pipeline {
     agent any
-
+    
     environment {
-        DOCKER_IMAGE = "mborham6/library-app"
-        DOCKER_TAG = "latest"
-        EKS_CLUSTER = "flask-app-cluster"
-        AWS_REGION = "eu-west-1"
+        // AWS/EKS Config
+        AWS_REGION      = "eu-west-1"
+        EKS_CLUSTER     = "flask-app-cluster"
+        
+        // Docker Config
+        DOCKER_IMAGE = 'mborham6/jenkins-flask:latest' 
+        DOCKER_HUB_CREDENTIALS = 'new-docker-credential'
+        DOCKERFILE_PATH = "src/Dockerfile"
+        
+        // Terraform Config
+        TF_STATE_BUCKET = "newtf.state1"
+        TF_DIR          = "infra/terraform"
+        
+        // Kubernetes Config
+        K8S_DIR         = "k8s"
     }
 
     stages {
-        // Stage 1: Checkout code from Git
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/MuhammadBorham/Final-Project.git'
+                git branch: 'main',
+                url: 'https://github.com/MuhammadBorham/Final-Project.git'
             }
         }
 
-        // Stage 2: Build Docker image
-        stage('Build Docker Image') {
+        stage('Terraform Apply') {
             steps {
-                script {
-                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'Aws_Credentials',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) 
+                dir(TF_DIR) {
+                    sh """
+                    terraform init -backend-config="bucket=${TF_STATE_BUCKET}"
+                    terraform apply -auto-approve
+                    """
                 }
             }
         }
 
-        // Stage 3: Push to Docker Hub
-        stage('Push to Docker Hub') {
+        stage('Build Docker Image') {
             steps {
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                        docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
+                dir('src') {  // Build from app directory
+                    script {
+                        docker.build("${DOCKER_IMAGE}", "-f ${DOCKERFILE_PATH} .")
                     }
                 }
             }
         }
 
-        // Stage 4: Deploy to EKS
-        stage('Deploy to EKS') {
+        stage('Push to Docker Hub') {
             steps {
                 script {
-                    // Authenticate with AWS EKS
-                    sh "aws eks --region ${AWS_REGION} update-kubeconfig --name ${EKS_CLUSTER}"
+                    docker.withRegistry('https://registry.hub.docker.com', "${env.DOCKER_HUB_CREDENTIALS}") {
+                        docker.image("${DOCKER_IMAGE}").push()
+                    }
+                }
+            }
+        }
 
-                    // Apply Kubernetes manifests
-                    sh "kubectl apply -f kubernetes/deployment.yaml"
-                    sh "kubectl apply -f kubernetes/service.yaml"
-                    sh "kubectl apply -f kubernetes/ingress.yaml"  // Optional
-
-                    // Verify deployment
-                    sh "kubectl rollout status deployment/library-app"
+        stage('Deploy to EKS') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'Aws_Credentials',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    sh """
+                    aws eks update-kubeconfig --name ${EKS_CLUSTER} --region ${AWS_REGION}
+                    kubectl apply -f ${K8S_DIR}  # Deploy from k8s directory
+                    """
                 }
             }
         }
@@ -57,10 +83,16 @@ pipeline {
 
     post {
         success {
-            slackSend channel: '#devops', message: "✅ Successfully deployed ${DOCKER_IMAGE}:${DOCKER_TAG} to EKS"
+            slackSend(
+                channel: '#deployments',
+                message: "SUCCESS: ${env.JOB_NAME} deployed to ${EKS_CLUSTER}"
+            )
         }
         failure {
-            slackSend channel: '#devops', message: "❌ Failed to deploy ${DOCKER_IMAGE}:${DOCKER_TAG} to EKS"
+            slackSend(
+                channel: '#alerts',
+                message: "FAILED: ${env.JOB_NAME} build ${env.BUILD_NUMBER}"
+            )
         }
     }
 }
