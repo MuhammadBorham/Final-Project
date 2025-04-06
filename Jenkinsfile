@@ -8,7 +8,7 @@ pipeline {
         
         // Docker Config
         DOCKER_IMAGE = 'mborham6/jenkins-flask:latest' 
-        DOCKER_HUB_CREDENTIALS = 'new-docker-credential'
+        DOCKER_HUB_CREDENTIALS = credentials('new-docker-credential') // Use credentials() helper
         DOCKERFILE_PATH = "src/Dockerfile"
         
         // Terraform Config
@@ -27,26 +27,9 @@ pipeline {
             }
         }
 
-        stage('Terraform Apply') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'Aws_Credentials',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) 
-                dir(TF_DIR) {
-                    sh """
-                    terraform init -backend-config="bucket=${TF_STATE_BUCKET}"
-                    terraform apply -auto-approve
-                    """
-                }
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
-                dir('src') {  // Build from app directory
+                dir('src') {
                     script {
                         docker.build("${DOCKER_IMAGE}", "-f ${DOCKERFILE_PATH} .")
                     }
@@ -57,7 +40,7 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', "${env.DOCKER_HUB_CREDENTIALS}") {
+                    docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS}") {
                         docker.image("${DOCKER_IMAGE}").push()
                     }
                 }
@@ -68,14 +51,16 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'Aws_Credentials',
+                    credentialsId: 'aws-creds',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
-                    sh """
-                    aws eks update-kubeconfig --name ${EKS_CLUSTER} --region ${AWS_REGION}
-                    kubectl apply -f ${K8S_DIR}  # Deploy from k8s directory
-                    """
+                    script {
+                        sh """
+                        aws eks update-kubeconfig --name ${EKS_CLUSTER} --region ${AWS_REGION}
+                        kubectl apply -f ${K8S_DIR}
+                        """
+                    }
                 }
             }
         }
@@ -85,13 +70,13 @@ pipeline {
         success {
             slackSend(
                 channel: '#deployments',
-                message: "SUCCESS: ${env.JOB_NAME} deployed to ${EKS_CLUSTER}"
+                message: "SUCCESS: ${env.JOB_NAME} deployed to ${EKS_CLUSTER} (Build #${env.BUILD_NUMBER})"
             )
         }
         failure {
             slackSend(
                 channel: '#alerts',
-                message: "FAILED: ${env.JOB_NAME} build ${env.BUILD_NUMBER}"
+                message: "FAILED: ${env.JOB_NAME} Build #${env.BUILD_NUMBER}\nSee: ${env.BUILD_URL}"
             )
         }
     }
