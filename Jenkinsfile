@@ -8,9 +8,8 @@ pipeline {
         
         // Docker Config
         DOCKER_IMAGE = 'mborham6/jenkins-flask:latest' 
-        DOCKER_HUB_CREDENTIALS = credentials('new-docker-credential') // Use credentials() helper
-        DOCKERFILE_PATH = "src/Dockerfile"
-        
+        DOCKER_HUB_CREDENTIALS = credentials('new-docker-credential')
+        DOCKERFILE_PATH = "Dockerfile" // Updated path if Dockerfile is in root
         
         // Kubernetes Config
         K8S_DIR         = "k8s"
@@ -26,10 +25,9 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-               
-                    script {
-                        docker.build("${DOCKER_IMAGE}", "-f ${DOCKERFILE_PATH} .")
-                    }
+                script {
+                    // Build from root directory
+                    docker.build("${DOCKER_IMAGE}", "-f ${DOCKERFILE_PATH} .")
                 }
             }
         }
@@ -64,16 +62,13 @@ pipeline {
     }
 
     post {
-        success {
-            slackSend(
-                channel: '#deployments',
-                message: "SUCCESS: ${env.JOB_NAME} deployed to ${EKS_CLUSTER} (Build #${env.BUILD_NUMBER})"
-            )
-        }
-        failure {
-            slackSend(
-                channel: '#alerts',
-                message: "FAILED: ${env.JOB_NAME} Build #${env.BUILD_NUMBER}\nSee: ${env.BUILD_URL}"
+        always {
+            echo "Pipeline completed - ${currentBuild.result}"
+            // Basic email notification (configure in Jenkins first)
+            emailext (
+                subject: "Pipeline ${currentBuild.result}: ${env.JOB_NAME}",
+                body: "Check console output at ${env.BUILD_URL}",
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
             )
         }
     }
