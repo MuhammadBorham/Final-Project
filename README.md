@@ -59,6 +59,8 @@ This is a **Library Management System** built with Flask and designed as a **com
 - NodePort or Ingress service
 - Secrets for DB/mail credentials
 
+
+
 ## 📊 Monitoring with Prometheus and Grafana
 
 Real-time metrics are collected using **Prometheus** and visualized via **Grafana dashboards**.
@@ -160,7 +162,7 @@ Your Jenkins pipeline will:
 ## 📸 Screenshots
 
 ### 🔧 Jenkins CI/CD Pipeline
-![Jenkins Pipeline](screenshots/jenkins_pipeline.png)
+![Jenkins Pipeline](screenshots/jenkins.png)
 
 ### 📚 Library Management UI
 ![Library UI](./screenshots/library-ui.png)
