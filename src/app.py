@@ -4,7 +4,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from itsdangerous import URLSafeTimedSerializer
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_mail import Mail, Message
+###################from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 import os
 import uuid
@@ -15,14 +15,6 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///library.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Flask-Mail configuration
-app.config['MAIL_SERVER'] = 'smtp.example.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = 'noreply@library.com'
-
 # File upload configuration
 app.config['UPLOAD_FOLDER'] = 'static/uploads/books'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
@@ -32,7 +24,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-mail = Mail(app)
+#####################mail = Mail(app)
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -188,32 +180,8 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-@app.route('/reset_password_request', methods=['GET', 'POST'])
-def reset_password_request():
-    if request.method == 'POST':
-        email = request.form['email']
-        user = User.query.filter_by(email=email).first()
-        if user:
-            send_reset_email(user)
-            flash('Password reset instructions have been sent to your email.')
-            return redirect(url_for('login'))
-        else:
-            flash('Email not found.')
-    return render_template('reset_password_request.html')
 
-@app.route('/reset_password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    user = verify_reset_token(token)
-    if not user:
-        flash('Invalid or expired token')
-        return redirect(url_for('reset_password_request'))
-    if request.method == 'POST':
-        password = request.form['password']
-        user.password = generate_password_hash(password)
-        db.session.commit()
-        flash('Your password has been reset.')
-        return redirect(url_for('login'))
-    return render_template('reset_password.html')
+
 
 @app.route('/dashboard')
 @login_required
@@ -360,29 +328,7 @@ def author_details(author_id):
     author = Author.query.get_or_404(author_id)
     return render_template('author_details.html', author=author)
 
-@app.route('/remove_author/<int:author_id>')
-@login_required
-def remove_author(author_id):
-    if not current_user.is_admin:
-        flash('You do not have permission to remove authors')
-        return redirect(url_for('dashboard'))
 
-    author = Author.query.get(author_id)
-    if author:
-        if author.books:
-            flash('Cannot remove author with associated books')
-        else:
-            try:
-                db.session.delete(author)
-                db.session.commit()
-                flash('Author removed successfully')
-            except Exception as e:
-                db.session.rollback()
-                flash('An error occurred. Please try again.')
-    else:
-        flash('Author not found')
-
-    return redirect(url_for('dashboard'))
 
 @app.route('/remove_book/<int:book_id>', methods=['POST'])
 @login_required
@@ -398,17 +344,33 @@ def remove_book(book_id):
             BorrowedBook.query.filter_by(book_id=book.id).delete()
             flash('All borrowed records for this book have been deleted.')
 
-            # Now delete the book
+            # Delete the image file if it exists
+            if book.image_filename:
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], book.image_filename)
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+
+            # Delete the book
             db.session.delete(book)
             db.session.commit()
-            flash('Book removed successfully')
+            flash('Book and associated image removed successfully')
+
+            # Remove author if they have no other books
+            author = Author.query.get(book.author_id)
+            if author and not author.books:
+                db.session.delete(author)
+                db.session.commit()
+                flash('Author removed as they had no other books')
+
         except Exception as e:
             db.session.rollback()
+            print(f"Error removing book: {e}")
             flash('An error occurred. Please try again.')
     else:
         flash('Book not found')
 
     return redirect(url_for('dashboard'))
+
 
 @app.route('/borrow_book/<int:book_id>', methods=['POST'])
 @login_required
