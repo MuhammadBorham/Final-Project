@@ -9,7 +9,7 @@ This is a **Library Management System** built with Flask and designed as a **com
 | Layer               | Tools Used                          |
 |---------------------|-------------------------------------|
 | **App Framework**   | Flask, SQLAlchemy, Jinja2           |
-| **Database**        | SQLite (or PostgreSQL/MySQL)        |
+| **Database**        | SQLite                              |
 | **Authentication**  | Flask-Login, Admin & User Roles     |
 | **File Upload**     | AWS S3                              |
 | **IaC**             | Terraform                           |
@@ -64,14 +64,6 @@ This is a **Library Management System** built with Flask and designed as a **com
 ## 📊 Monitoring with Prometheus and Grafana
 
 Real-time metrics are collected using **Prometheus** and visualized via **Grafana dashboards**.
-
-### 🔥 Grafana Dashboard
-
-![Grafana Dashboard](screenshots/grafana.png)
-
-### 📈 Prometheus Metrics
-
-![Prometheus Metrics](screenshots/prometheus_metrics.png)
 
 
 ---
@@ -162,14 +154,16 @@ Your Jenkins pipeline will:
 ## 📸 Screenshots
 
 ### 🔧 Jenkins CI/CD Pipeline
-![Jenkins Pipeline](screenshots/jenkins.png)
+![Jenkins Pipeline](screen-shots/jenkins-pipeline.png)
+![Jenkins Pipeline](screen-shots/jenkins-consol.png)
 
 ### 📚 Library Management UI
-![Library UI](./screenshots/library-ui.png)
+![Library UI](screen-shots/library-home.png)
+![Library UI](screen-shots/library-dashboard.png)
 
 ### 📊 Grafana Dashboard
-![Grafana Dashboard](./screenshots/grafana-dashboard.png)
+![Grafana Dashboard](screen-shots/grafana1.png)
+![Grafana Dashboard](screen-shots/grafana2.png)
+![Grafana Dashboard](screen-shots/grafana3.png)
 
-### 📡 Prometheus Targets
-![Prometheus Targets](./screenshots/prometheus-targets.png)
 
