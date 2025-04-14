@@ -8,12 +8,15 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 import uuid
+from prometheus_flask_exporter import PrometheusMetrics
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///library.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+metrics = PrometheusMetrics(app)
 
 # File upload configuration
 app.config['UPLOAD_FOLDER'] = 'static/uploads/books'
@@ -98,6 +101,16 @@ def verify_reset_token(token, expiration=3600):
     except:
         return None
     return User.query.filter_by(email=email).first()
+
+#prometheus route
+@app.route('/')
+def home():
+    return "Welcome!"
+
+@app.route('/health')
+def health():
+    return "OK"
+
 
 # Routes
 @app.route('/')
