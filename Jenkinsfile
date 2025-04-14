@@ -55,7 +55,7 @@ pipeline {
 
                         # Deploy Kubernetes manifests
                         kubectl apply -f ${K8S_MANIFEST_DIR}/namespace.yaml
-                        kubectl apply -f ${K8S_MANIFEST_DIR}/deploymet.yaml
+                        kubectl apply -f ${K8S_MANIFEST_DIR}/deployment.yaml
                         kubectl apply -f ${K8S_MANIFEST_DIR}/service.yaml
                         
                         # Verify deployment
