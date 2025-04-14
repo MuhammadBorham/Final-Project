@@ -25,7 +25,7 @@ pipeline {
             steps {
                 script {
                     // Build from root directory with Dockerfile in src/
-                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "-f ${DOCKERFILE_PATH} .")
+                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}", "-f ${DOCKERFILE_PATH} src/")
                 }
             }
         }
