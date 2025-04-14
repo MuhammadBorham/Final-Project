@@ -3,9 +3,9 @@ pipeline {
 
     environment {
         // Docker Configuration
-        DOCKER_IMAGE     = 'mborham6/jenkins-flask'
+        DOCKER_IMAGE     = 'mborham6/library-app'
         DOCKER_TAG       = 'latest'
-        DOCKERFILE_PATH  = 'src/Dockerfile'  // Path to Dockerfile
+        DOCKERFILE_PATH  = 'src/Dockerfile'  
         
         // AWS/EKS Configuration
         AWS_REGION      = 'eu-west-1'
@@ -44,7 +44,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-cred',
+                    credentialsId: 'AWScred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
@@ -56,7 +56,9 @@ pipeline {
                             --region ${AWS_REGION}
 
                         # Deploy Kubernetes manifests
-                        kubectl apply -f ${K8S_MANIFEST_DIR}
+                        kubectl apply -f ${K8S_MANIFEST_DIR}/namespace.yaml
+                        kubectl apply -f ${K8S_MANIFEST_DIR}/deploymet.yaml
+                        kubectl apply -f ${K8S_MANIFEST_DIR}/service.yaml
                         
                         # Verify deployment
                         kubectl rollout status deployment/flask-app

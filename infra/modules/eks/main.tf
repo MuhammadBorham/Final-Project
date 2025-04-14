@@ -71,7 +71,8 @@ resource "aws_eks_node_group" "nodes" {
   cluster_name    = aws_eks_cluster.cluster.name
   node_group_name = "${var.cluster_name}-nodes"
   node_role_arn   = aws_iam_role.nodes.arn
-  subnet_ids      = var.subnet_ids # This will now use the public subnets
+  # This will now use the public subnets
+  subnet_ids = var.subnet_ids
 
   scaling_config {
     desired_size = 1
