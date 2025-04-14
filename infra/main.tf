@@ -1,7 +1,3 @@
-provider "aws" {
-  region  = "eu-west-1"
-  profile = "default"
-}
 module "vpc" {
   source       = "./modules/vpc"
   cluster_name = var.cluster_name
