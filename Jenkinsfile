@@ -59,7 +59,7 @@ pipeline {
                         kubectl apply -f ${K8S_MANIFEST_DIR}/service.yaml
                         
                         # Verify deployment
-                        kubectl rollout status deployment/flask-app
+                        kubectl rollout status deployment/flask-app --namespace library
                         """
                     }
                 }
